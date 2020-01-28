@@ -12,7 +12,6 @@ public class ExMain {
 	
 
 	List<Behavior<Configuration>> waterTank() {
-		List<Behavior<Configuration>> behaviors = new ArrayList<>();
 
         Behavior<Configuration> w2s =
                 new Behavior<>(
@@ -75,7 +74,6 @@ public class ExMain {
 	}
 	
 	List<Behavior<Configuration>> plc() {
-		List<Behavior<Configuration>> behaviors = new ArrayList<>();
 
         Behavior<Configuration> upd =
                 new Behavior<>(
@@ -86,7 +84,7 @@ public class ExMain {
                         	c.plcTriggerDecision=true;
                         	return c;
                         }, 
-                        Channel.in("updatedLevel")
+                        Channel.in("updateLevel")
                         ,false);
 
         Behavior<Configuration> t2r =
@@ -110,8 +108,8 @@ public class ExMain {
                         (c) -> {
                         	c.plcTriggerDecision = false;
                         	c.plcTriggerDangerous = true;
-                        	c.plcTriggerIV = true;
-                        	c.plcTriggerPump = true;
+                        	c.plcTriggerIVOff = true;
+                        	c.plcTriggerPumpOn = true;
                         	return c;
                         }
                         ,true);
@@ -124,32 +122,53 @@ public class ExMain {
                         (c) -> {
                         	c.plcTriggerDecision = false;
                         	c.plcTriggerDangerous = true;
-                        	c.plcTriggerIV = true;
-                        	c.plcTriggerPump = true;
+                        	c.plcTriggerIVOn = true;
+                        	c.plcTriggerPumpOff = true;
                         	return c;
                         }
                         ,true);
 
-        Behavior<Configuration> p2i =
+        Behavior<Configuration> p2io =
                 new Behavior<>(
-                         "p2i",
-                        (c) -> c.plcTriggerIV,
+                         "p2io",
+                        (c) -> c.plcTriggerIVOn,
                         (c) -> {
-                        	c.plcTriggerIV = false;
+                        	c.plcTriggerIVOn = false;
                         	return c;
                         }, 
-                        Channel.out("commandIV")
+                        Channel.out("commandIVOn")
                         ,true);
 
-        Behavior<Configuration> p2p =
+        Behavior<Configuration> p2po =
                 new Behavior<>(
-                         "p2p",
-                        (c) -> c.plcTriggerPump,
+                         "p2po",
+                        (c) -> c.plcTriggerPumpOn,
                         (c) -> {
-                        	c.plcTriggerPump = false;
+                        	c.plcTriggerPumpOn = false;
                         	return c;
                         }, 
-                        Channel.out("commandPump")
+                        Channel.out("commandPumpOn")
+                        ,true);
+        Behavior<Configuration> p2ic =
+                new Behavior<>(
+                         "p2ic",
+                        (c) -> c.plcTriggerIVOff,
+                        (c) -> {
+                        	c.plcTriggerIVOff = false;
+                        	return c;
+                        }, 
+                        Channel.out("commandIVOff")
+                        ,true);
+
+        Behavior<Configuration> p2pc =
+                new Behavior<>(
+                         "p2pc",
+                        (c) -> c.plcTriggerPumpOff,
+                        (c) -> {
+                        	c.plcTriggerPumpOff = false;
+                        	return c;
+                        }, 
+                        Channel.out("commandPumpOff")
                         ,true);
 
         Behavior<Configuration> p2d =
@@ -173,11 +192,10 @@ public class ExMain {
                         }, 
                         Channel.out("regularLevel")
                         ,true);
-        return Arrays.asList(upd,t2r,t2u,t2d,p2i,p2p);
+        return Arrays.asList(upd,t2r,t2u,t2d,p2io,p2po,p2ic,p2pc,p2d,p2r);
 	}
 	
 	List<Behavior<Configuration>> scada() {
-		List<Behavior<Configuration>> behaviors = new ArrayList<>();
 
         Behavior<Configuration> e2r =
                 new Behavior<>(
@@ -246,31 +264,52 @@ public class ExMain {
 	}
 	
 	List<Behavior<Configuration>> inflowValve() {
-		List<Behavior<Configuration>> behaviors = new ArrayList<>();
 
+        Behavior<Configuration> o2crit =
+                new Behavior<>(
+                         "IV.o2crit",
+                        (c) -> c.iIsOpen && !c.flagIV,
+                        (c) -> {
+                        	c.flagIV=true;
+                        	return c;
+                        }
+                        ,true);		
+		
         Behavior<Configuration> o2o =
                 new Behavior<>(
-                         "o2o",
-                        (c) -> c.iIsOpen,
+                         "IV.o2o",
+                        (c) -> c.iIsOpen && (!c.flagPump || c.turn==c.TURN_IV),
                         (c) -> {
+                        	c.flagIV=false;
+                        	c.turn=c.TURN_PUMP;
                         	return c;
                         }, 
                         Channel.out("increase")
                         ,false);
         
-        Behavior<Configuration> f2f =
+        Behavior<Configuration> f2fo =
                 new Behavior<>(
-                         "f2f",
+                         "IV.f2fo",
                         (c) -> c.iIsForced,
                         (c) -> {
                         	return c;
                         }, 
-                        Channel.in("commandIV")
+                        Channel.in("commandIVOn")
+                        ,false);
+        
+        Behavior<Configuration> f2fc =
+                new Behavior<>(
+                         "IV.f2fc",
+                        (c) -> c.iIsForced,
+                        (c) -> {
+                        	return c;
+                        }, 
+                        Channel.in("commandIVOff")
                         ,false);
         
         Behavior<Configuration> a2f =
                 new Behavior<>(
-                         "a2f",
+                         "IV.a2f",
                         (c) -> true,
                         (c) -> {
                         	c.iIsForced = true;
@@ -280,17 +319,28 @@ public class ExMain {
                         Channel.in("forceOpen")
                         ,false);
         
-        Behavior<Configuration> a2a =
+        Behavior<Configuration> c2o =
                 new Behavior<>(
-                         "o2o",
+                         "IV.c2o",
                         (c) -> !c.iIsForced,
                         (c) -> {
-                        	c.iIsOpen=!c.iIsOpen;
+                        	c.iIsOpen=true;
                         	return c;
                         }, 
-                        Channel.in("commandIV")
+                        Channel.in("commandIVOn")
                         ,false);
-        return Arrays.asList(o2o,f2f,a2f,a2a);
+        
+        Behavior<Configuration> o2c =
+                new Behavior<>(
+                         "IV.o2c",
+                        (c) -> !c.iIsForced,
+                        (c) -> {
+                        	c.iIsOpen=false;
+                        	return c;
+                        }, 
+                        Channel.in("commandIVOff")
+                        ,false);
+        return Arrays.asList(o2crit,o2o,f2fo,f2fc,a2f,o2c,c2o);
 	}
 
 	List<Behavior<Configuration>> attacker() {
@@ -390,35 +440,72 @@ public class ExMain {
 	}
 	
 	List<Behavior<Configuration>> pump() {
-
-        Behavior<Configuration> o2o =
+		
+        Behavior<Configuration> o2crit =
                 new Behavior<>(
-                         "o2o",
-                        (c) -> c.pIsOpen,
-                        (c) -> c, 
+                         "Pump.o2crit",
+                        (c) -> c.pIsOpen && !c.flagPump,
+                        (c) -> {
+                        	c.flagPump=true;
+                        	return c;
+                        }
+                        ,true);	
+
+        Behavior<Configuration> flow =
+                new Behavior<>(
+                         "Pump.flow",
+                        (c) -> c.pIsOpen && (!c.flagIV || c.turn==c.TURN_PUMP),
+                        (c) -> {
+                        	c.flagIV=false;
+                        	c.turn=c.TURN_IV;
+                        	return c;
+                        },  
                         Channel.out("flow")
-                        ,false);
+                        ,false);        
+        
         Behavior<Configuration> o2c =
                 new Behavior<>(
-                        "o2c",
+                        "Pump.o2c",
                         (c) ->    c.pIsOpen,
                         (c) -> {
                             c.pIsOpen = false;
                             return c;
                         },
-                        Channel.in("commandPump")
+                        Channel.in("commandPumpOff")
                         );
+        
+        Behavior<Configuration> c2c =
+                new Behavior<>(
+                        "Pump.c2c",
+                        (c) ->    !c.pIsOpen,
+                        (c) -> {
+                            return c;
+                        },
+                        Channel.in("commandPumpOff")
+                        );
+        
         Behavior<Configuration> c2o =
                 new Behavior<>(
-                         "c2o",
+                         "Pump.c2o",
                         (c) -> !c.pIsOpen,
                         (c) -> {
                             c.pIsOpen = true;                            
                             return c;
 						}, 
-                        Channel.in("commandPump")							 
+                        Channel.in("commandPumpOn")							 
                         );
-        return Arrays.asList(o2o, o2c, c2o);
+        
+        Behavior<Configuration> o2o =
+                new Behavior<>(
+                        "Pump.o2o",
+                        (c) ->    c.pIsOpen,
+                        (c) -> {
+                            return c;
+                        },
+                        Channel.in("commandPumpOn")
+                        );
+        
+        return Arrays.asList(o2crit, flow, o2o, o2c, c2o, c2c);
 	}
 	
 	List<Behavior<Configuration>> sensor() {
