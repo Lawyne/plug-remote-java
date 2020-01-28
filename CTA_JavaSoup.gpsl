@@ -1,4 +1,24 @@
 scadaNotAlert = []! |s.sAlert|
-attack_success = [] ! |s.wtOverflow|
-attack_success1 = [] ! (|s.wtOverflow| or |s.wtWaterLevel==0|)
+attack_success = [] ! (|s.wtOverflow| and []!|s.sAlert|)
+attack_success1 = [] ! |s.wtOverflow|
 attack_success2 = [] ! |s.wtWaterLevel==0|
+
+overflow_capability0 = [] (! |s.wtOverflow|)
+overflow_capability1 = [] ((! |s.aHasForced|) -> (! |s.wtOverflow|))
+overflow_capability2 = [] ((! |s.aHasManuallyInput|) -> (! |s.wtOverflow|))
+overflow_capability3 = [] ((! |s.aHasJammedNetwork|) -> (! |s.wtOverflow|))
+overflow_capability12 = [] ((! |s.aHasForced| and ! |s.aHasManuallyInput|) -> (! |s.wtOverflow|))
+overflow_capability13 = [] ((! |s.aHasForced| and ! |s.aHasJammedNetwork|) -> (! |s.wtOverflow|))
+overflow_capability23 = [] ((! |s.aHasJammedNetwork| and ! |s.aHasManuallyInput|) -> (! |s.wtOverflow|))
+overflow_capability123 = [] ((! |s.aHasForced| and ! |s.aHasJammedNetwork| and ! |s.aHasManuallyInput|) -> (! |s.wtOverflow|))
+
+stealth_capability0 = [] !(|s.wtOverflow| and []!|s.sAlert|)
+stealth_capability1 = [] ((! |s.aHasForced|) -> (! (|s.wtOverflow| and []!|s.sAlert|)))
+stealth_capability2 = [] ((! |s.aHasManuallyInput|) -> (! (|s.wtOverflow| and []!|s.sAlert|)))
+stealth_capability3 = [] ((! |s.aHasJammedNetwork|) -> (! (|s.wtOverflow| and []!|s.sAlert|)))
+stealth_capability12 = [] ((! |s.aHasForced| and ! |s.aHasManuallyInput|) -> (! (|s.wtOverflow| and []!|s.sAlert|)))
+stealth_capability13 = [] ((! |s.aHasForced| and ! |s.aHasJammedNetwork|) -> (! (|s.wtOverflow| and []!|s.sAlert|)))
+stealth_capability23 = [] ((! |s.aHasJammedNetwork| and ! |s.aHasManuallyInput|) -> (! (|s.wtOverflow| and []!|s.sAlert|)))
+stealth_capability123 = [] ((! |s.aHasForced| and ! |s.aHasJammedNetwork| and ! |s.aHasManuallyInput|) -> (! (|s.wtOverflow| and []!|s.sAlert|)))
+
+necessary_attack = [] ((!|s.aHasJammedNetwork| or !|s.aHasForced| or !|s.aHasManuallyInput|) ->( !|s.wtOverflow| or |s.sAlert|))
